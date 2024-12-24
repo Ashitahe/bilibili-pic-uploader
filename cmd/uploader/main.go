@@ -42,7 +42,12 @@ func main() {
 	}
 
 	// 创建上传器
-	uploader := uploader.New(csrf, cfg.Cookie)
+	uploader := uploader.New(
+		csrf, 
+		cfg.Cookie,
+		cfg.Compression.Enabled,
+		cfg.Compression.Quality,
+	)
 	
 	var results []models.UploadResult
 	
@@ -71,9 +76,12 @@ func processUploads(inputDir string, uploader *uploader.Uploader, results *[]mod
 		if !info.IsDir() && storage.IsImageFile(path) {
 			fmt.Printf("正在处理: %s\n", path)
 			
-			result, err := uploader.UploadImage(path)
+			result, compressionInfo, err := uploader.UploadImage(path)
 			uploadResult := models.UploadResult{
-				LocalPath: path,
+				LocalPath:       path,
+				RemoteURL:       result.Data.URL,
+				Success:         true,
+				CompressionInfo: compressionInfo,
 			}
 			
 			if err != nil {
@@ -113,13 +121,26 @@ func printUsage() {
 
 func printSummary(results []models.UploadResult, outputJSON string) {
 	successCount := 0
+	var totalOriginalSize, totalCompressedSize int64
+	
 	for _, result := range results {
 		if result.Success {
 			successCount++
+			if result.CompressionInfo != nil {
+				totalOriginalSize += result.CompressionInfo.OriginalSize
+				totalCompressedSize += result.CompressionInfo.CompressedSize
+			}
 		}
 	}
 	
 	fmt.Printf("\n处理完成，共处理 %d 个文件\n", len(results))
 	fmt.Printf("成功：%d 个\n", successCount)
+	
+	if totalOriginalSize > 0 {
+		fmt.Printf("总压缩前大小：%s\n", models.FormatFileSize(totalOriginalSize))
+		fmt.Printf("总压缩后大小：%s\n", models.FormatFileSize(totalCompressedSize))
+		fmt.Printf("平均压缩率：%.2f%%\n", float64(totalOriginalSize-totalCompressedSize)/float64(totalOriginalSize)*100)
+	}
+	
 	fmt.Printf("结果已保存到：%s\n", outputJSON)
 }

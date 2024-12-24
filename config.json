@@ -1,5 +1,9 @@
 {
-  "cookie": "你的B站cookie字符串",
-  "input_dir": "图片所在目录",
-  "output_file": "上传结果保存的JSON文件"
+  "input_dir": "./imgs",
+  "output_file": "upload_results.json",
+  "cookie": "",
+  "compression": {
+    "enabled": true,
+    "quality": 75
+  }
 }
